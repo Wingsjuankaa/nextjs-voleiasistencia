@@ -1,0 +1,9 @@
+.env
+.env*.local
+serviceAccountKey.json
+firebase-service-account*.json
+node_modules
+.next
+.next-dev*.log
+tsconfig.tsbuildinfo
+asistencia.html

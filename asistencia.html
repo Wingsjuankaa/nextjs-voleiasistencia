@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Asistencia MVP</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-hover: #334155;
+            --secondary: #3b82f6;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+            --text-muted: #64748b;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        /* Sistema de vistas */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .row-flex {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        input[type="text"], input[type="date"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        button {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        button.outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .list-item:active { background: var(--bg); }
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .back-btn { padding: 8px 12px; font-size: 0.9rem; }
+
+        /* Checkboxes estilo App */
+        .checkbox-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--secondary);
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">📋 Control de Asistencia</div>
+
+<div class="container" id="app">
+
+    <div id="view-groups" class="view active">
+        <div class="card">
+            <h3 style="margin-top:0;">Crear Nuevo Grupo</h3>
+            <div class="row-flex">
+                <input type="text" id="newGroupName" placeholder="Ej: Equipo Voleibol A">
+                <button onclick="actions.createGroup()">Crear</button>
+            </div>
+        </div>
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Mis Grupos</h3>
+        <div id="groupsList"></div>
+    </div>
+
+    <div id="view-group-detail" class="view">
+        <div class="nav-bar">
+            <button class="outline back-btn" onclick="ui.navigate('view-groups')">← Volver</button>
+            <h2 id="detailGroupName" style="margin:0; font-size: 1.2rem;"></h2>
+        </div>
+
+        <div class="row-flex">
+            <button onclick="ui.navigate('view-attendance')" style="flex:1;">📝 Pasar Asistencia</button>
+            <button onclick="ui.renderSummary(); ui.navigate('view-summary')" class="outline" style="flex:1;">📊 Ver Resumen</button>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">Añadir Persona</h3>
+            <div class="row-flex">
+                <input type="text" id="newMemberName" placeholder="Nombre de la persona">
+                <button onclick="actions.addMember()">Añadir</button>
+            </div>
+        </div>
+
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Integrantes (<span id="memberCount">0</span>)</h3>
+        <div class="card" id="membersList" style="padding: 0; border: none; background: transparent; box-shadow: none;">
+        </div>
+    </div>
+
+    <div id="view-attendance" class="view">
+        <div class="nav-bar">
+            <button class="outline back-btn" onclick="ui.navigate('view-group-detail')">← Cancelar</button>
+            <h2 style="margin:0; font-size: 1.2rem;">Asistencia</h2>
+        </div>
+
+        <div class="card">
+            <label style="display:block; margin-bottom:8px; font-weight:bold;">Fecha de asistencia:</label>
+            <input type="date" id="attendanceDate" style="margin-bottom: 16px;">
+
+            <div id="attendanceChecklist" style="margin-bottom: 24px;">
+            </div>
+
+            <button onclick="actions.saveAttendance()" style="width: 100%;">Guardar Asistencia</button>
+        </div>
+    </div>
+
+    <div id="view-summary" class="view">
+        <div class="nav-bar">
+            <button class="outline back-btn" onclick="ui.navigate('view-group-detail')">← Volver</button>
+            <h2 style="margin:0; font-size: 1.2rem;">Resumen</h2>
+        </div>
+
+        <div class="card" id="summaryContent">
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- CAPA DE DATOS (Persistencia Local) ---
+    const db = {
+        key: 'asistencia_app_v2',
+        get: () => JSON.parse(localStorage.getItem(db.key)) || { groups: [] },
+        save: (data) => localStorage.setItem(db.key, JSON.stringify(data)),
+        getGroup: (id) => db.get().groups.find(g => g.id === id)
+    };
+
+    // --- ESTADO DE LA APLICACIÓN ---
+    const state = {
+        currentGroupId: null
+    };
+
+    // --- CONTROLADOR DE UI ---
+    const ui = {
+        navigate: (viewId) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+
+            // Hooks al navegar
+            if (viewId === 'view-groups') ui.renderGroups();
+            if (viewId === 'view-attendance') ui.renderAttendanceForm();
+            if (viewId === 'view-group-detail') ui.renderGroupDetail();
+        },
+
+        renderGroups: () => {
+            const data = db.get();
+            const container = document.getElementById('groupsList');
+            container.innerHTML = '';
+
+            if (data.groups.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#64748b;">No hay grupos creados.</p>';
+                return;
+            }
+
+            data.groups.forEach(g => {
+                container.innerHTML += `
+                    <div class="list-item" onclick="actions.openGroup('${g.id}')">
+                        <strong style="font-size:1.1rem;">${g.name}</strong>
+                        <span style="color:var(--text-muted);">👉</span>
+                    </div>
+                `;
+            });
+        },
+
+        renderGroupDetail: () => {
+            const group = db.getGroup(state.currentGroupId);
+            if (!group) return;
+
+            document.getElementById('detailGroupName').innerText = group.name;
+            document.getElementById('memberCount').innerText = group.members.length;
+
+            const container = document.getElementById('membersList');
+            container.innerHTML = '';
+            group.members.forEach(m => {
+                container.innerHTML += `
+                    <div class="list-item" style="cursor:default; margin-bottom:8px;">
+                        <span>👤 ${m}</span>
+                    </div>
+                `;
+            });
+        },
+
+        renderAttendanceForm: () => {
+            const group = db.getGroup(state.currentGroupId);
+            document.getElementById('attendanceDate').valueAsDate = new Date(); // Fecha actual
+
+            const container = document.getElementById('attendanceChecklist');
+            container.innerHTML = '';
+
+            if (group.members.length === 0) {
+                container.innerHTML = '<p>No hay personas en este grupo para pasar lista.</p>';
+                return;
+            }
+
+            group.members.forEach(m => {
+                container.innerHTML += `
+                    <div class="checkbox-row">
+                        <label for="chk_${m}" style="font-size:1.1rem; flex:1; cursor:pointer;">${m}</label>
+                        <input type="checkbox" id="chk_${m}" checked>
+                    </div>
+                `;
+            });
+        },
+
+        renderSummary: () => {
+            const group = db.getGroup(state.currentGroupId);
+            const container = document.getElementById('summaryContent');
+            const totalFechas = Object.keys(group.attendances).length;
+
+            if (totalFechas === 0) {
+                container.innerHTML = '<p>No hay asistencias registradas aún.</p>';
+                return;
+            }
+
+            const totales = {};
+            group.members.forEach(m => totales[m] = 0);
+
+            Object.values(group.attendances).forEach(registro => {
+                for (const [miembro, asistio] of Object.entries(registro)) {
+                    if (asistio && totales[miembro] !== undefined) totales[miembro]++;
+                }
+            });
+
+            let html = `<p style="margin-top:0; color:var(--text-muted);">Total de clases/fechas: <strong>${totalFechas}</strong></p>`;
+            group.members.forEach(m => {
+                const pct = Math.round((totales[m] / totalFechas) * 100);
+                html += `
+                    <div class="summary-row">
+                        <strong>${m}</strong>
+                        <span>${totales[m]} asistencias (${pct}%)</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+    };
+
+    // --- ACCIONES DEL USUARIO ---
+    const actions = {
+        createGroup: () => {
+            const input = document.getElementById('newGroupName');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const data = db.get();
+            data.groups.push({
+                id: Date.now().toString(),
+                name: name,
+                members: [],
+                attendances: {}
+            });
+            db.save(data);
+            input.value = '';
+            ui.renderGroups();
+        },
+
+        openGroup: (id) => {
+            state.currentGroupId = id;
+            ui.navigate('view-group-detail');
+        },
+
+        addMember: () => {
+            const input = document.getElementById('newMemberName');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const data = db.get();
+            const groupIndex = data.groups.findIndex(g => g.id === state.currentGroupId);
+
+            if (!data.groups[groupIndex].members.includes(name)) {
+                data.groups[groupIndex].members.push(name);
+                db.save(data);
+            }
+
+            input.value = '';
+            ui.renderGroupDetail();
+        },
+
+        saveAttendance: () => {
+            const date = document.getElementById('attendanceDate').value;
+            if (!date) return alert("Selecciona una fecha");
+
+            const data = db.get();
+            const groupIndex = data.groups.findIndex(g => g.id === state.currentGroupId);
+            const group = data.groups[groupIndex];
+
+            const registro = {};
+            group.members.forEach(m => {
+                const checkbox = document.getElementById(`chk_${m}`);
+                if (checkbox) registro[m] = checkbox.checked;
+            });
+
+            group.attendances[date] = registro;
+            db.save(data);
+
+            alert(`Asistencia del ${date} guardada`);
+            ui.navigate('view-group-detail');
+        }
+    };
+
+    // Inicializar App
+    document.addEventListener('DOMContentLoaded', () => {
+        ui.renderGroups();
+    });
+
+</script>
+
+</body>
+</html>
