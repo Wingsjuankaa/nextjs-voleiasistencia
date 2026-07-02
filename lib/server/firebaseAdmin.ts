@@ -6,16 +6,24 @@ import path from "node:path";
 
 function parseServiceAccount() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const encoded = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
   const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
-  if (!raw && !serviceAccountPath) {
-    throw new Error("Falta la credencial privada de Firebase Admin. Configura FIREBASE_SERVICE_ACCOUNT_JSON o FIREBASE_SERVICE_ACCOUNT_PATH.");
+  if (!raw && !encoded && !serviceAccountPath) {
+    throw new Error(
+      "Falta la credencial privada de Firebase Admin. Configura FIREBASE_SERVICE_ACCOUNT_JSON, FIREBASE_SERVICE_ACCOUNT_BASE64 o FIREBASE_SERVICE_ACCOUNT_PATH."
+    );
   }
 
   const resolvedServiceAccountPath = serviceAccountPath
     ? path.resolve(/*turbopackIgnore: true*/ process.cwd(), serviceAccountPath)
     : "";
-  const serviceAccount = raw ? JSON.parse(raw) : JSON.parse(fs.readFileSync(resolvedServiceAccountPath, "utf8"));
+  const serviceAccountSource =
+    raw ??
+    (encoded ? Buffer.from(encoded, "base64").toString("utf8") : fs.readFileSync(resolvedServiceAccountPath, "utf8"));
+
+  const parsedServiceAccount = JSON.parse(serviceAccountSource.trim());
+  const serviceAccount = typeof parsedServiceAccount === "string" ? JSON.parse(parsedServiceAccount) : parsedServiceAccount;
 
   if (typeof serviceAccount.private_key === "string") {
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");

@@ -25,12 +25,21 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json
 FIREBASE_SERVICE_ACCOUNT_JSON=
+FIREBASE_SERVICE_ACCOUNT_BASE64=
 ALLOWED_GOOGLE_EMAILS=
 ```
 
 Para desarrollo local, descarga una clave privada en Firebase Console > Configuracion del proyecto > Cuentas de servicio > Generar nueva clave privada, guardala como `serviceAccountKey.json` en la raiz del proyecto y deja `FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json`.
 
-Para Vercel, usa `FIREBASE_SERVICE_ACCOUNT_JSON` con el JSON completo del service account. Si el `private_key` queda en una sola linea con `\n`, la app lo normaliza automaticamente.
+Para Vercel, puedes usar `FIREBASE_SERVICE_ACCOUNT_JSON` con el JSON completo del service account. Si el `private_key` queda en una sola linea con `\n`, la app lo normaliza automaticamente.
+
+Si Vercel falla leyendo el JSON pegado, usa la opcion mas robusta: `FIREBASE_SERVICE_ACCOUNT_BASE64`. En PowerShell puedes generarla asi:
+
+```powershell
+[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((Get-Content .\serviceAccountKey.json -Raw))) | Set-Clipboard
+```
+
+Luego pega el resultado en Vercel como `FIREBASE_SERVICE_ACCOUNT_BASE64` y elimina o deja vacia `FIREBASE_SERVICE_ACCOUNT_JSON`.
 
 Para restringir el acceso a una o varias cuentas Google, completa `ALLOWED_GOOGLE_EMAILS` con correos separados por coma. Ejemplo: `ALLOWED_GOOGLE_EMAILS=persona@gmail.com,otra@gmail.com`. Si queda vacio, cualquier usuario autenticado con Google puede usar la app.
 
@@ -65,6 +74,7 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 NEXT_PUBLIC_FIREBASE_APP_ID
 NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 FIREBASE_SERVICE_ACCOUNT_JSON
+FIREBASE_SERVICE_ACCOUNT_BASE64
 ALLOWED_GOOGLE_EMAILS
 ```
 
