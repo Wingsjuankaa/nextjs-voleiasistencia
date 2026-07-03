@@ -1,4 +1,4 @@
-import type { Group, GroupSummary, Member } from "../../types/domain";
+import type { AttendanceRecord, ClubBackup, ClubPayload, ClubSettings, ClubSummary, Group, GroupSummary, Member, Payment, Player } from "../../types/domain";
 
 type ApiOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
@@ -42,5 +42,20 @@ export const api = {
     request<{ attendance: Record<string, boolean> | null }>(`/api/groups/${groupId}/sessions/${date}`, { token }),
   saveSession: (token: string, groupId: string, date: string, attendance: Record<string, boolean>) =>
     request<{ ok: true }>(`/api/groups/${groupId}/sessions/${date}`, { token, method: "POST", body: { attendance } }),
-  getSummary: (token: string, groupId: string) => request<{ summary: GroupSummary }>(`/api/groups/${groupId}/summary`, { token })
+  getSummary: (token: string, groupId: string) => request<{ summary: GroupSummary }>(`/api/groups/${groupId}/summary`, { token }),
+
+  getClub: (token: string) => request<ClubPayload>("/api/club", { token }),
+  updateClubSettings: (token: string, settings: Partial<ClubSettings>) =>
+    request<ClubPayload>("/api/club", { token, method: "PATCH", body: { settings } }),
+  createPlayer: (token: string, player: Partial<Player>) => request<{ player: Player }>("/api/club/players", { token, method: "POST", body: { player } }),
+  updatePlayer: (token: string, playerId: string, player: Partial<Player>) =>
+    request<{ player: Player }>(`/api/club/players/${playerId}`, { token, method: "PATCH", body: { player } }),
+  deactivatePlayer: (token: string, playerId: string) => request<{ player: Player }>(`/api/club/players/${playerId}`, { token, method: "DELETE" }),
+  createPayment: (token: string, payment: Partial<Payment>) => request<{ payment: Payment }>("/api/club/payments", { token, method: "POST", body: { payment } }),
+  deletePayment: (token: string, paymentId: string) => request<{ ok: true }>(`/api/club/payments/${paymentId}`, { token, method: "DELETE" }),
+  saveAttendance: (token: string, date: string, records: Partial<AttendanceRecord>[]) =>
+    request<{ ok: true; saved: number }>("/api/club/attendance", { token, method: "POST", body: { date, records } }),
+  getClubSummary: (token: string, month: number) => request<{ summary: ClubSummary }>(`/api/club/summary?month=${month}`, { token }),
+  importBackup: (token: string, backup: Partial<ClubBackup>) =>
+    request<{ ok: true; counts: { players: number; payments: number; attendance: number } }>("/api/club/import", { token, method: "POST", body: { backup } })
 };

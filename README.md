@@ -1,6 +1,6 @@
-# Control de Asistencia
+# Control Club de Voley
 
-Aplicacion web en Next.js para crear grupos, registrar asistencia por fecha y revisar resumenes porcentuales. Parte del prototipo `asistencia.html`, pero usa login con Google, API Routes y Firestore.
+Aplicacion web en Next.js para controlar jugadores, asistencia, pagos, deudores, resumenes mensuales y respaldos del club. Parte del prototipo `asistencia.html`, pero usa login con Google, API Routes y Firestore.
 
 ## Stack
 
@@ -84,7 +84,34 @@ ALLOWED_GOOGLE_EMAILS
 
 El archivo `firestore.rules` niega toda lectura y escritura directa desde cliente. La app funciona porque las API Routes usan Firebase Admin SDK en servidor y validan el ID token del usuario.
 
-## Modelo de datos
+## Modelo de datos actual
+
+El flujo principal usa un club unico compartido por las cuentas autorizadas:
+
+- `clubs/main`: configuracion del club, valores mensuales y plantilla de mensaje a deudores.
+- `clubs/main/players/{playerId}`: jugadores, categoria, estado, valor, telefonos, RUT y datos internos.
+- `clubs/main/payments/{paymentId}`: pagos por mes con snapshot de jugador/categoria/valor.
+- `clubs/main/attendanceRecords/{recordId}`: asistencia por fecha con estado y observacion.
+
+Las rutas antiguas de grupos quedan en el codigo para compatibilidad, pero la pantalla principal usa `/api/club`.
+
+## Migracion desde asistencia.html
+
+Para validar los datos embebidos sin escribir en Firestore:
+
+```bash
+npm run seed:club -- --dry-run
+```
+
+Para cargar o actualizar `clubs/main` en Firestore usando los datos actuales de `asistencia.html`:
+
+```bash
+npm run seed:club
+```
+
+El seed usa IDs deterministicos (`player_*`, `payment_*`, `attendance_*`), por lo que volver a ejecutarlo no duplica los documentos importados.
+
+## Modelo de datos anterior
 
 - `users/{uid}`: perfil minimo del usuario autenticado.
 - `groups/{groupId}`: nombre, `ownerId`, timestamps.
